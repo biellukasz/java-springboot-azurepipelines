@@ -1,22 +1,47 @@
-# Maven
-# Build your Java project and run tests with Apache Maven.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/java
+#README - https://docs.microsoft.com/pl-pl/azure/devops/pipelines/yaml-schema
 
 trigger:
-- master
+  - master
 
 pool:
   vmImage: 'ubuntu-latest'
-
-steps:
-- task: Maven@3
-  inputs:
-    mavenPomFile: 'pom.xml'
-    mavenOptions: '-Xmx3072m'
-    javaHomeOption: 'JDKVersion'
-    jdkVersionOption: '1.8'
-    jdkArchitectureOption: 'x64'
-    publishJUnitResults: true
-    testResultsFiles: '**/surefire-reports/TEST-*.xml'
-    goals: 'package'
+stages:
+  - stage: BuildandTest
+    jobs:
+    - job:
+      displayName: Build Maven Project
+      steps:
+        - task: Maven@3
+          displayName: 'Maven Package'
+          inputs:
+            mavenPomFile: 'pom.xml'
+        - task: CopyFiles@2
+          displayName: 'Copy Files to artifact staging directory'
+          inputs:
+            SourceFolder: '$(System.DefaultWorkingDirectory)'
+            Contents: '**/target/*.?(war|jar)'
+            TargetFolder: $(Build.ArtifactStagingDirectory)
+        - upload: $(Build.ArtifactStagingDirectory)
+          artifact: drop
+  - stage: DevDeployment
+    jobs:
+    - deployment: VMDeploy
+      displayName: DevVM
+      environment:
+        name: development
+        resourceType: VirtualMachine
+      strategy:
+        runOnce:
+          preDeploy:
+            steps:
+              - download: current
+                artifact: drop
+              - script: |
+                  systemctl stop tomcat
+                  cd /opt/tomcat/apache-tomcat-9.0.34/webapps/
+                  find -type f -name '*azurepipelines*' -delete
+          deploy:
+            steps:
+              - script: |
+                  cp /home/azagent/_work/1/drop/target/java-springboot-azurepipelines-0.0.1-SNAPSHOT.war /opt/tomcat/apache-tomcat-9.0.34/webapps/
+                  systemctl start tomcat
