@@ -9,6 +9,6 @@ public class Controller {
 
     @GetMapping(value="/api", produces = MediaType.TEXT_PLAIN_VALUE)
     public String getMessage(){
-        return "Hello from Spring Booot";
+        return "Hello from Spring Boot CI CD";
     }
 }
