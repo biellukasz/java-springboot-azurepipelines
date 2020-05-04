@@ -1,49 +1,28 @@
 #README - https://docs.microsoft.com/pl-pl/azure/devops/pipelines/yaml-schema
 
 trigger:
-  - master
-  - develop
+  branches:
+    include:
+      - master
+      - develop
+      - feature/*
+      - release/*
+      - hotfix/*
 
-pool:
+variables:
   vmImage: 'ubuntu-latest'
+  envName: 'development'
+
+resources:
+  repositories:
+    - repository: azure-pipelines-example
+      type: git
+      name: azure-pipelines-example
+
 stages:
-  - stage: BuildandTest
-    jobs:
-    - job:
-      displayName: Build Maven Project
-      steps:
-        - task: Maven@3
-          displayName: 'Maven Package'
-          inputs:
-            mavenPomFile: 'pom.xml'
-        - task: CopyFiles@2
-          displayName: 'Copy Files to artifact staging directory'
-          inputs:
-            SourceFolder: '$(System.DefaultWorkingDirectory)'
-            Contents: '**/target/*.?(war|jar)'
-            TargetFolder: $(Build.ArtifactStagingDirectory)
-        - upload: $(Build.ArtifactStagingDirectory)
-          artifact: drop
-  - stage: DevDeployment
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
-    jobs:
-    - deployment: VMDeploy
-      displayName: DevVM
-      environment:
-        name: development
-        resourceType: VirtualMachine
-      strategy:
-        runOnce:
-          preDeploy:
-            steps:
-              - download: current
-                artifact: drop
-              - script: |
-                  systemctl stop tomcat
-                  cd /opt/tomcat/apache-tomcat-9.0.34/webapps/
-                  find -type f -name '*azurepipelines*' -delete
-          deploy:
-            steps:
-              - script: |
-                  cp /home/azagent/_work/1/drop/target/java-springboot-azurepipelines-0.0.1-SNAPSHOT.war /opt/tomcat/apache-tomcat-9.0.34/webapps/
-                  systemctl start tomcat
+  - template: azure-pipelines/build-stages.yaml@azure-pipelines-example
+    parameters:
+      vmImage: $(vmImage)
+  - template: azure-pipelines/deploy-stages.yaml@azure-pipelines-example
+    parameters:
+      envName: $(envName)
