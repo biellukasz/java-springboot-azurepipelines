@@ -17,6 +17,8 @@
 
     <properties>
         <java.version>1.8</java.version>
+        <currentBuildVersion>2020.04-SNAPSHOT</currentBuildVersion>
+        <currentAppVersion>2020.04</currentAppVersion>
     </properties>
 
     <dependencies>
@@ -51,5 +53,15 @@
             </plugin>
         </plugins>
     </build>
+    <distributionManagement>
+        <repository>
+            <id>myMavenRepoWrite</id>
+            <url>${myMavenRepoWriteUrl}</url>
+        </repository>
+        <snapshotRepository>
+            <id>myMavenRepoWrite</id>
+            <url>${myMavenRepoWriteUrl}</url>
+        </snapshotRepository>
+    </distributionManagement>
 
 </project>

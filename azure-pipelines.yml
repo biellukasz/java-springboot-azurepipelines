@@ -12,6 +12,10 @@ trigger:
 variables:
   vmImage: 'ubuntu-latest'
   envName: 'development'
+  mavenGoal: 'pom.xml'
+  major: 2
+  minor: 0
+  patch: 0
 
 resources:
   repositories:
@@ -20,9 +24,23 @@ resources:
       name: azure-pipelines-example
 
 stages:
+  - stage:
+    displayName: Build_Develop_Version_Number
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+    jobs:
+      - job: Build_Master_Version_Number
+        variables:
+          patch: $[counter(variables['minor'], 0)]
+        steps:
+          - bash: |
+              version=$(grep currentBuildVersion pom.xml | grep -v '<?xml' | grep '<currentBuildVersion>'|head -n 1|awk '{print $1}'| cut -d'>' -f 2 | cut -d'<' -f 1)
+              echo "##vso[task.setvariable variable=version]$version"
+              echo "##vso[build.updatebuildnumber]$version-$(Build.SourceBranchName)"
+            name: SetDevelopBuildName
   - template: azure-pipelines/build-stages.yaml@azure-pipelines-example
     parameters:
       vmImage: $(vmImage)
+      mavenGoal: $(mavenGoal)
   - template: azure-pipelines/deploy-stages.yaml@azure-pipelines-example
     parameters:
       envName: $(envName)
