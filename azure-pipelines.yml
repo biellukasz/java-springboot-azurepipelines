@@ -24,19 +24,7 @@ resources:
       name: azure-pipelines-example
 
 stages:
-  - stage:
-    displayName: Build_Develop_Version_Number
-    condition: eq(variables['Build.SourceBranch'], 'refs/heads/develop')
-    jobs:
-      - job: Build_Master_Version_Number
-        variables:
-          patch: $[counter(variables['minor'], 0)]
-        steps:
-          - bash: |
-              version=$(grep currentBuildVersion pom.xml | grep -v '<?xml' | grep '<currentBuildVersion>'|head -n 1|awk '{print $1}'| cut -d'>' -f 2 | cut -d'<' -f 1)
-              echo "##vso[task.setvariable variable=version]$version"
-              echo "##vso[build.updatebuildnumber]$version-$(Build.SourceBranchName)"
-            name: SetDevelopBuildName
+  - template: azure-pipelines/build-name-stage.yaml@azure-pipelines-example
   - template: azure-pipelines/build-stages.yaml@azure-pipelines-example
     parameters:
       vmImage: $(vmImage)
